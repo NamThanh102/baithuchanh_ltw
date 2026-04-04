@@ -1,6 +1,6 @@
 import './App.css';
 
-import React, { useState } from "react";
+import React from "react";
 import { Grid, Paper } from "@mui/material";
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 
@@ -10,17 +10,12 @@ import UserList from "./components/UserList";
 import UserPhotos from "./components/UserPhotos";
 
 const App = () => {
-  const [advancedFeatures, setAdvancedFeatures] = useState(false);
-
   return (
       <Router>
         <div>
           <Grid container spacing={2}>
             <Grid item xs={12}>
-              <TopBar
-                advancedFeatures={advancedFeatures}
-                onAdvancedFeaturesChange={setAdvancedFeatures}
-              />
+              <TopBar />
             </Grid>
             <div className="main-topbar-buffer" />
             <Grid item sm={3}>
@@ -38,11 +33,7 @@ const App = () => {
                   />
                   <Route
                       path="/photos/:userId"
-                    element = {<UserPhotos advancedFeatures={advancedFeatures} />}
-                  />
-                  <Route
-                    path="/photos/:userId/:photoId"
-                    element = {<UserPhotos advancedFeatures={advancedFeatures} />}
+                    element = {<UserPhotos />}
                   />
                   <Route path="/users" element={<UserList />} />
                 </Routes>

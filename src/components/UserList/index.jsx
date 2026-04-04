@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
-  CircularProgress,
   Divider,
   List,
   ListItem,
@@ -11,45 +10,14 @@ import {
 import { Link as RouterLink, useLocation } from "react-router-dom";
 
 import "./styles.css";
-import fetchModel from "../../lib/fetchModelData";
 import models from "../../modelData/models";
 
 /**
  * Define UserList, a React component of Project 4.
  */
 function UserList () {
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const users = models.userListModel();
     const location = useLocation();
-
-    useEffect(() => {
-      let cancelled = false;
-
-      fetchModel("/user/list")
-        .then((data) => {
-          if (!cancelled) {
-            setUsers(data || []);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setUsers(models.userListModel() || []);
-          }
-        })
-        .finally(() => {
-          if (!cancelled) {
-            setLoading(false);
-          }
-        });
-
-      return () => {
-        cancelled = true;
-      };
-    }, []);
-
-    if (loading) {
-      return <CircularProgress size={24} />;
-    }
 
     return (
       <div>
