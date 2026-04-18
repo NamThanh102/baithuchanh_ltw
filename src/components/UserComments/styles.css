@@ -1,0 +1,15 @@
+.user-comments-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.user-comments-thumb {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+}
+
+.user-comments-link {
+  display: inline-flex;
+}
