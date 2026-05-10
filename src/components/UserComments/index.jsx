@@ -28,7 +28,7 @@ function resolveImage(fileName) {
   try {
     return imageModules(`./${fileName}`);
   } catch (error) {
-    return "";
+    return fileName ? `/images/${fileName}` : "";
   }
 }
 

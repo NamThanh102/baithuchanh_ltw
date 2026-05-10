@@ -18,13 +18,20 @@ import fetchModel from "../../lib/fetchModelData";
 /**
  * Define UserList, a React component of Project 4.
  */
-function UserList () {
+function UserList ({ isLoggedIn, refreshKey }) {
     const [users, setUsers] = useState([]);
   const [statsByUserId, setStatsByUserId] = useState({});
     const [loading, setLoading] = useState(true);
     const location = useLocation();
 
     useEffect(() => {
+      if (!isLoggedIn) {
+        setUsers([]);
+        setStatsByUserId({});
+        setLoading(false);
+        return () => {};
+      }
+
       let cancelled = false;
 
       Promise.all([fetchModel("/user/list"), fetchModel("/user/stats/list")])
@@ -59,7 +66,15 @@ function UserList () {
       return () => {
         cancelled = true;
       };
-    }, []);
+    }, [isLoggedIn, refreshKey]);
+
+    if (!isLoggedIn) {
+      return (
+        <Typography variant="body2" color="text.secondary">
+          Please Login
+        </Typography>
+      );
+    }
 
     if (loading) {
       return <CircularProgress size={24} />;

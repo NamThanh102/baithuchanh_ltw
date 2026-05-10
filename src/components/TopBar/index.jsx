@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { AppBar, Checkbox, FormControlLabel, Toolbar, Typography } from "@mui/material";
+import React, { useEffect, useRef, useState } from "react";
+import { AppBar, Button, Checkbox, FormControlLabel, Toolbar, Typography } from "@mui/material";
 import { matchPath, useLocation } from "react-router-dom";
 
 import "./styles.css";
@@ -8,9 +8,10 @@ import fetchModel from "../../lib/fetchModelData";
 /**
  * Define TopBar, a React component of Project 4.
  */
-function TopBar ({ advancedFeatures, onAdvancedFeaturesChange }) {
+function TopBar ({ advancedFeatures, onAdvancedFeaturesChange, currentUser, onLogout, onAddPhoto }) {
     const location = useLocation();
     const [contextText, setContextText] = useState("Users");
+  const fileInputRef = useRef(null);
 
     useEffect(() => {
       const userRouteMatch = matchPath("/users/:userId", location.pathname);
@@ -61,6 +62,28 @@ function TopBar ({ advancedFeatures, onAdvancedFeaturesChange }) {
           <Typography variant="h6" color="inherit" sx={{ flexGrow: 1 }}>
             Nguyễn Thành Nam-B23DCCN587
           </Typography>
+          {currentUser ? (
+            <Button
+              color="inherit"
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              sx={{ mr: 2 }}
+            >
+              Add Photo
+            </Button>
+          ) : null}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(event) => {
+              const [file] = event.target.files || [];
+              if (file) {
+                onAddPhoto(file);
+              }
+              event.target.value = "";
+            }}
+          />
           <FormControlLabel
             sx={{ color: "inherit", mr: 3 }}
             control={(
@@ -72,6 +95,14 @@ function TopBar ({ advancedFeatures, onAdvancedFeaturesChange }) {
             )}
             label="Enable Advanced Features"
           />
+          <Typography variant="body1" color="inherit" sx={{ mr: 2 }}>
+            {currentUser ? `Hi ${currentUser.first_name}` : "Please Login"}
+          </Typography>
+          {currentUser ? (
+            <Button color="inherit" onClick={onLogout} sx={{ mr: 2 }}>
+              Logout
+            </Button>
+          ) : null}
           <Typography variant="h6" color="inherit">
             {contextText}
           </Typography>

@@ -5,7 +5,7 @@
  *
  */
 async function fetchModel(url) {
-  const response = await fetch(url);
+  const response = await fetch(url, { credentials: "include" });
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status} ${response.statusText}`);
   }

@@ -8,6 +8,7 @@ import {
   Divider,
   Button,
   Link,
+  TextField,
   Typography,
 } from "@mui/material";
 
@@ -29,44 +30,70 @@ function resolveImage(fileName) {
   try {
     return imageModules(`./${fileName}`);
   } catch (error) {
-    return "";
+    return fileName ? `/images/${fileName}` : "";
   }
 }
 
 /**
  * Define UserPhotos, a React component of Project 4.
  */
-function UserPhotos ({ advancedFeatures }) {
+function UserPhotos ({ advancedFeatures, currentUser, refreshKey, onDataChanged }) {
   const { userId, photoId } = useParams();
   const navigate = useNavigate();
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [commentInputs, setCommentInputs] = useState({});
 
     useEffect(() => {
       let cancelled = false;
 
-      setLoading(true);
-      fetchModel(`/photosOfUser/${userId}`)
-        .then((data) => {
+      const loadPhotos = async () => {
+        setLoading(true);
+        try {
+          const data = await fetchModel(`/photosOfUser/${userId}`);
           if (!cancelled) {
             setPhotos(data || []);
           }
-        })
-        .catch(() => {
+        } catch (error) {
           if (!cancelled) {
             setPhotos([]);
           }
-        })
-        .finally(() => {
+        } finally {
           if (!cancelled) {
             setLoading(false);
           }
-        });
+        }
+      };
+
+      loadPhotos();
 
       return () => {
         cancelled = true;
       };
-    }, [userId]);
+    }, [userId, refreshKey]);
+
+    const submitComment = async (photoTargetId) => {
+      const text = (commentInputs[photoTargetId] || "").trim();
+      if (!text) {
+        return;
+      }
+
+      const response = await fetch(`/commentsOfPhoto/${photoTargetId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ comment: text }),
+      });
+
+      if (response.ok) {
+        setCommentInputs((prev) => ({ ...prev, [photoTargetId]: "" }));
+        const updated = await fetchModel(`/photosOfUser/${userId}`);
+        setPhotos(updated || []);
+        if (onDataChanged) {
+          onDataChanged();
+        }
+      }
+    };
 
     if (loading) {
       return <CircularProgress size={24} />;
@@ -130,6 +157,30 @@ function UserPhotos ({ advancedFeatures }) {
                 Comments
               </Typography>
 
+              {currentUser ? (
+                <Box sx={{ mb: 2 }}>
+                  <TextField
+                    label="Add a comment"
+                    value={commentInputs[activePhoto._id] || ""}
+                    onChange={(event) =>
+                      setCommentInputs((prev) => ({
+                        ...prev,
+                        [activePhoto._id]: event.target.value,
+                      }))
+                    }
+                    fullWidth
+                    size="small"
+                  />
+                  <Button
+                    variant="contained"
+                    sx={{ mt: 1 }}
+                    onClick={() => submitComment(activePhoto._id)}
+                  >
+                    Submit
+                  </Button>
+                </Box>
+              ) : null}
+
               {(activePhoto.comments || []).length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No comments.
@@ -175,6 +226,30 @@ function UserPhotos ({ advancedFeatures }) {
               <Typography variant="subtitle1" gutterBottom>
                 Comments
               </Typography>
+
+              {currentUser ? (
+                <Box sx={{ mb: 2 }}>
+                  <TextField
+                    label="Add a comment"
+                    value={commentInputs[photo._id] || ""}
+                    onChange={(event) =>
+                      setCommentInputs((prev) => ({
+                        ...prev,
+                        [photo._id]: event.target.value,
+                      }))
+                    }
+                    fullWidth
+                    size="small"
+                  />
+                  <Button
+                    variant="contained"
+                    sx={{ mt: 1 }}
+                    onClick={() => submitComment(photo._id)}
+                  >
+                    Submit
+                  </Button>
+                </Box>
+              ) : null}
 
               {(photo.comments || []).length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
