@@ -1,72 +1,107 @@
-import "./App.css";
+import './App.css';
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Grid, Paper } from "@mui/material";
 import { BrowserRouter as Router, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
+import LoginRegister from "./components/LoginRegister";
 import TopBar from "./components/TopBar";
-import UserDetail from "./components/UserDetail";
 import UserComments from "./components/UserComments";
+import UserDetail from "./components/UserDetail";
 import UserList from "./components/UserList";
 import UserPhotos from "./components/UserPhotos";
-import LoginRegister from "./components/LoginRegister";
 
-const RequireAuth = ({ user, children }) => {
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  return children;
-};
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "";
 
-const AppContent = () => {
+function AppContent() {
+  const navigate = useNavigate();
   const [advancedFeatures, setAdvancedFeatures] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [photoRefreshKey, setPhotoRefreshKey] = useState(0);
+  const [authChecked, setAuthChecked] = useState(false);
   const [listRefreshKey, setListRefreshKey] = useState(0);
-  const navigate = useNavigate();
+  const [photoRefreshKey, setPhotoRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`${apiBaseUrl}/admin/me`, {
+      credentials: "include",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return null;
+        }
+
+        return response.json();
+      })
+      .then((user) => {
+        if (!cancelled && user) {
+          setCurrentUser(user);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAuthChecked(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleLogin = (user) => {
     setCurrentUser(user);
-    navigate(`/users/${user._id}`);
+    navigate(`/users/${user._id}`, { replace: true });
   };
 
   const handleLogout = async () => {
     try {
-      await fetch("/admin/logout", {
+      await fetch(`${apiBaseUrl}/admin/logout`, {
         method: "POST",
         credentials: "include",
       });
     } finally {
       setCurrentUser(null);
-      navigate("/login");
+      navigate("/login", { replace: true });
     }
   };
 
   const handleAddPhoto = async (file) => {
-    if (!file || !currentUser) {
+    if (!currentUser || !file) {
       return;
     }
 
     const formData = new FormData();
-    formData.append("photo", file);
+    formData.append("uploadedphoto", file);
 
-    const response = await fetch("/photos/new", {
+    const response = await fetch(`${apiBaseUrl}/photos/new`, {
       method: "POST",
-      body: formData,
       credentials: "include",
+      body: formData,
     });
 
-    if (response.ok) {
-      setPhotoRefreshKey((value) => value + 1);
-      setListRefreshKey((value) => value + 1);
-      navigate(`/photos/${currentUser._id}`);
+    if (!response.ok) {
+      throw new Error("Upload failed");
     }
+
+    setListRefreshKey((value) => value + 1);
+    setPhotoRefreshKey((value) => value + 1);
+    navigate(`/photos/${currentUser._id}`);
   };
 
-  const handleDataChanged = () => {
-    setPhotoRefreshKey((value) => value + 1);
-    setListRefreshKey((value) => value + 1);
-  };
+  if (!authChecked) {
+    return null;
+  }
+
+  if (!currentUser) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginRegister onLogin={handleLogin} />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   return (
     <div>
@@ -83,82 +118,33 @@ const AppContent = () => {
         <div className="main-topbar-buffer" />
         <Grid item sm={3}>
           <Paper className="main-grid-item">
-            <UserList isLoggedIn={Boolean(currentUser)} refreshKey={listRefreshKey} />
+            <UserList isLoggedIn refreshKey={listRefreshKey} />
           </Paper>
         </Grid>
         <Grid item sm={9}>
           <Paper className="main-grid-item">
             <Routes>
-              <Route
-                path="/"
-                element={
-                  <Navigate
-                    to={currentUser ? `/users/${currentUser._id}` : "/login"}
-                    replace
-                  />
-                }
-              />
-              <Route
-                path="/login"
-                element={<LoginRegister onLogin={handleLogin} />}
-              />
-              <Route
-                path="/users/:userId"
-                element={
-                  <RequireAuth user={currentUser}>
-                    <UserDetail />
-                  </RequireAuth>
-                }
-              />
+              <Route path="/" element={<Navigate to={`/users/${currentUser._id}`} replace />} />
+              <Route path="/login" element={<Navigate to={`/users/${currentUser._id}`} replace />} />
+              <Route path="/users" element={<Navigate to={`/users/${currentUser._id}`} replace />} />
+              <Route path="/users/:userId" element={<UserDetail />} />
               <Route
                 path="/photos/:userId"
-                element={
-                  <RequireAuth user={currentUser}>
-                    <UserPhotos
-                      advancedFeatures={advancedFeatures}
-                      currentUser={currentUser}
-                      refreshKey={photoRefreshKey}
-                      onDataChanged={handleDataChanged}
-                    />
-                  </RequireAuth>
-                }
+                element={<UserPhotos advancedFeatures={advancedFeatures} refreshKey={photoRefreshKey} />}
               />
               <Route
                 path="/photos/:userId/:photoId"
-                element={
-                  <RequireAuth user={currentUser}>
-                    <UserPhotos
-                      advancedFeatures={advancedFeatures}
-                      currentUser={currentUser}
-                      refreshKey={photoRefreshKey}
-                      onDataChanged={handleDataChanged}
-                    />
-                  </RequireAuth>
-                }
+                element={<UserPhotos advancedFeatures={advancedFeatures} refreshKey={photoRefreshKey} />}
               />
-              <Route
-                path="/comments/:userId"
-                element={
-                  <RequireAuth user={currentUser}>
-                    <UserComments />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/users"
-                element={
-                  <RequireAuth user={currentUser}>
-                    <UserList isLoggedIn={Boolean(currentUser)} refreshKey={listRefreshKey} />
-                  </RequireAuth>
-                }
-              />
+              <Route path="/comments/:userId" element={<UserComments />} />
+              <Route path="*" element={<Navigate to={`/users/${currentUser._id}`} replace />} />
             </Routes>
           </Paper>
         </Grid>
       </Grid>
     </div>
   );
-};
+}
 
 const App = () => (
   <Router>

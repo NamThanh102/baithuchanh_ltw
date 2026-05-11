@@ -5,7 +5,11 @@
  *
  */
 async function fetchModel(url) {
-  const response = await fetch(url, { credentials: "include" });
+  const baseUrl = process.env.REACT_APP_API_BASE_URL || '';
+  const fullUrl = baseUrl + url;
+  const response = await fetch(fullUrl, {
+    credentials: "include",
+  });
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status} ${response.statusText}`);
   }

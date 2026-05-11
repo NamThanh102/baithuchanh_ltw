@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-import { Box, Button, Divider, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Grid, Paper, TextField, Typography } from "@mui/material";
+
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "";
 
 function LoginRegister({ onLogin }) {
-	const [loginName, setLoginName] = useState("");
-	const [loginPassword, setLoginPassword] = useState("");
-	const [loginMessage, setLoginMessage] = useState("");
-
-	const [registerData, setRegisterData] = useState({
+	const [loginForm, setLoginForm] = useState({ login_name: "", password: "" });
+	const [registerForm, setRegisterForm] = useState({
 		login_name: "",
 		password: "",
 		confirmPassword: "",
@@ -16,210 +15,196 @@ function LoginRegister({ onLogin }) {
 		description: "",
 		occupation: "",
 	});
-	const [registerMessage, setRegisterMessage] = useState("");
+	const [loginError, setLoginError] = useState("");
+	const [registerError, setRegisterError] = useState("");
+	const [registerSuccess, setRegisterSuccess] = useState("");
 
-	const handleLogin = async (event) => {
+	const handleLoginSubmit = async (event) => {
 		event.preventDefault();
-		setLoginMessage("");
+		setLoginError("");
 
-		const response = await fetch("/admin/login", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			credentials: "include",
-			body: JSON.stringify({ login_name: loginName, password: loginPassword }),
-		});
+		try {
+			const response = await fetch(`${apiBaseUrl}/admin/login`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				credentials: "include",
+				body: JSON.stringify({
+					login_name: loginForm.login_name,
+					password: loginForm.password,
+				}),
+			});
 
-		if (!response.ok) {
-			setLoginMessage("Login failed. Please check your login name and password.");
-			return;
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data?.message || "Login failed");
+			}
+
+			onLogin(data);
+		} catch (error) {
+			setLoginError(error.message || "Login failed");
 		}
-
-		const user = await response.json();
-		setLoginName("");
-		setLoginPassword("");
-		setLoginMessage("");
-		onLogin(user);
 	};
 
-	const handleRegister = async (event) => {
+	const handleRegisterSubmit = async (event) => {
 		event.preventDefault();
-		setRegisterMessage("");
+		setRegisterError("");
+		setRegisterSuccess("");
 
-		if (!registerData.login_name || !registerData.password || !registerData.first_name || !registerData.last_name) {
-			setRegisterMessage("Please fill in all required fields.");
+		if (registerForm.password !== registerForm.confirmPassword) {
+			setRegisterError("Password and confirm password must match");
 			return;
 		}
 
-		if (registerData.password !== registerData.confirmPassword) {
-			setRegisterMessage("Passwords do not match.");
-			return;
+		try {
+			const response = await fetch(`${apiBaseUrl}/user`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				credentials: "include",
+				body: JSON.stringify({
+					login_name: registerForm.login_name,
+					password: registerForm.password,
+					first_name: registerForm.first_name,
+					last_name: registerForm.last_name,
+					location: registerForm.location,
+					description: registerForm.description,
+					occupation: registerForm.occupation,
+				}),
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data?.message || "Registration failed");
+			}
+
+			setRegisterSuccess("Registered successfully. Please login.");
+			setRegisterForm({
+				login_name: "",
+				password: "",
+				confirmPassword: "",
+				first_name: "",
+				last_name: "",
+				location: "",
+				description: "",
+				occupation: "",
+			});
+		} catch (error) {
+			setRegisterError(error.message || "Registration failed");
 		}
-
-		const response = await fetch("/user", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			credentials: "include",
-			body: JSON.stringify({
-				login_name: registerData.login_name,
-				password: registerData.password,
-				first_name: registerData.first_name,
-				last_name: registerData.last_name,
-				location: registerData.location,
-				description: registerData.description,
-				occupation: registerData.occupation,
-			}),
-		});
-
-		if (!response.ok) {
-			const errorText = await response.json().catch(() => ({}));
-			setRegisterMessage(errorText.message || "Registration failed.");
-			return;
-		}
-
-		setRegisterMessage("Registration successful. Please log in.");
-		setRegisterData({
-			login_name: "",
-			password: "",
-			confirmPassword: "",
-			first_name: "",
-			last_name: "",
-			location: "",
-			description: "",
-			occupation: "",
-		});
 	};
 
 	return (
-		<Box sx={{ maxWidth: 520 }}>
-			<Typography variant="h5" gutterBottom>
-				Login
-			</Typography>
-			<Box component="form" onSubmit={handleLogin} sx={{ mb: 3 }}>
-				<TextField
-					label="Login Name"
-					value={loginName}
-					onChange={(event) => setLoginName(event.target.value)}
-					fullWidth
-					margin="normal"
-					required
-				/>
-				<TextField
-					label="Password"
-					type="password"
-					value={loginPassword}
-					onChange={(event) => setLoginPassword(event.target.value)}
-					fullWidth
-					margin="normal"
-					required
-				/>
-				{loginMessage ? (
-					<Typography color="error" variant="body2" sx={{ mt: 1 }}>
-						{loginMessage}
-					</Typography>
-				) : null}
-				<Button type="submit" variant="contained" sx={{ mt: 2 }}>
-					Login
-				</Button>
-			</Box>
+		<Box sx={{ p: 3 }}>
+			<Grid container spacing={3}>
+				<Grid item xs={12} md={6}>
+					<Paper sx={{ p: 3 }}>
+						<Typography variant="h6" gutterBottom>
+							Login
+						</Typography>
+						<Box component="form" onSubmit={handleLoginSubmit} sx={{ display: "grid", gap: 2 }}>
+							<TextField
+								label="Login Name"
+								value={loginForm.login_name}
+								onChange={(event) => setLoginForm({ ...loginForm, login_name: event.target.value })}
+								size="small"
+								fullWidth
+							/>
+							<TextField
+								label="Password"
+								type="password"
+								value={loginForm.password}
+								onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+								size="small"
+								fullWidth
+							/>
+							{loginError ? <Alert severity="error">{loginError}</Alert> : null}
+							<Button type="submit" variant="contained">
+								Login
+							</Button>
+						</Box>
+					</Paper>
+				</Grid>
 
-			<Divider sx={{ mb: 3 }} />
-
-			<Typography variant="h5" gutterBottom>
-				Register
-			</Typography>
-			<Box component="form" onSubmit={handleRegister}>
-				<TextField
-					label="Login Name"
-					value={registerData.login_name}
-					onChange={(event) =>
-						setRegisterData((prev) => ({ ...prev, login_name: event.target.value }))
-					}
-					fullWidth
-					margin="normal"
-					required
-				/>
-				<TextField
-					label="Password"
-					type="password"
-					value={registerData.password}
-					onChange={(event) =>
-						setRegisterData((prev) => ({ ...prev, password: event.target.value }))
-					}
-					fullWidth
-					margin="normal"
-					required
-				/>
-				<TextField
-					label="Confirm Password"
-					type="password"
-					value={registerData.confirmPassword}
-					onChange={(event) =>
-						setRegisterData((prev) => ({ ...prev, confirmPassword: event.target.value }))
-					}
-					fullWidth
-					margin="normal"
-					required
-				/>
-				<TextField
-					label="First Name"
-					value={registerData.first_name}
-					onChange={(event) =>
-						setRegisterData((prev) => ({ ...prev, first_name: event.target.value }))
-					}
-					fullWidth
-					margin="normal"
-					required
-				/>
-				<TextField
-					label="Last Name"
-					value={registerData.last_name}
-					onChange={(event) =>
-						setRegisterData((prev) => ({ ...prev, last_name: event.target.value }))
-					}
-					fullWidth
-					margin="normal"
-					required
-				/>
-				<TextField
-					label="Location"
-					value={registerData.location}
-					onChange={(event) =>
-						setRegisterData((prev) => ({ ...prev, location: event.target.value }))
-					}
-					fullWidth
-					margin="normal"
-				/>
-				<TextField
-					label="Description"
-					value={registerData.description}
-					onChange={(event) =>
-						setRegisterData((prev) => ({ ...prev, description: event.target.value }))
-					}
-					fullWidth
-					margin="normal"
-				/>
-				<TextField
-					label="Occupation"
-					value={registerData.occupation}
-					onChange={(event) =>
-						setRegisterData((prev) => ({ ...prev, occupation: event.target.value }))
-					}
-					fullWidth
-					margin="normal"
-				/>
-				{registerMessage ? (
-					<Typography
-						color={registerMessage.includes("successful") ? "primary" : "error"}
-						variant="body2"
-						sx={{ mt: 1 }}
-					>
-						{registerMessage}
-					</Typography>
-				) : null}
-				<Button type="submit" variant="contained" sx={{ mt: 2 }}>
-					Register Me
-				</Button>
-			</Box>
+				<Grid item xs={12} md={6}>
+					<Paper sx={{ p: 3 }}>
+						<Typography variant="h6" gutterBottom>
+							Register
+						</Typography>
+						<Box component="form" onSubmit={handleRegisterSubmit} sx={{ display: "grid", gap: 2 }}>
+							<TextField
+								label="Login Name"
+								value={registerForm.login_name}
+								onChange={(event) => setRegisterForm({ ...registerForm, login_name: event.target.value })}
+								size="small"
+								fullWidth
+							/>
+							<TextField
+								label="Password"
+								type="password"
+								value={registerForm.password}
+								onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
+								size="small"
+								fullWidth
+							/>
+							<TextField
+								label="Confirm Password"
+								type="password"
+								value={registerForm.confirmPassword}
+								onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
+								size="small"
+								fullWidth
+							/>
+							<TextField
+								label="First Name"
+								value={registerForm.first_name}
+								onChange={(event) => setRegisterForm({ ...registerForm, first_name: event.target.value })}
+								size="small"
+								fullWidth
+							/>
+							<TextField
+								label="Last Name"
+								value={registerForm.last_name}
+								onChange={(event) => setRegisterForm({ ...registerForm, last_name: event.target.value })}
+								size="small"
+								fullWidth
+							/>
+							<TextField
+								label="Location"
+								value={registerForm.location}
+								onChange={(event) => setRegisterForm({ ...registerForm, location: event.target.value })}
+								size="small"
+								fullWidth
+							/>
+							<TextField
+								label="Description"
+								value={registerForm.description}
+								onChange={(event) => setRegisterForm({ ...registerForm, description: event.target.value })}
+								size="small"
+								fullWidth
+								multiline
+								minRows={2}
+							/>
+							<TextField
+								label="Occupation"
+								value={registerForm.occupation}
+								onChange={(event) => setRegisterForm({ ...registerForm, occupation: event.target.value })}
+								size="small"
+								fullWidth
+							/>
+							{registerError ? <Alert severity="error">{registerError}</Alert> : null}
+							{registerSuccess ? <Alert severity="success">{registerSuccess}</Alert> : null}
+							<Button type="submit" variant="contained">
+								Register
+							</Button>
+						</Box>
+					</Paper>
+				</Grid>
+			</Grid>
 		</Box>
 	);
 }
