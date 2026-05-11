@@ -24,14 +24,22 @@ function AppContent() {
   useEffect(() => {
     let cancelled = false;
 
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      setAuthChecked(true);
+      return;
+    }
+
     fetch(`${apiBaseUrl}/admin/me`, {
-      credentials: "include",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
       .then((response) => {
         if (!response.ok) {
+          localStorage.removeItem("authToken");
           return null;
         }
-
         return response.json();
       })
       .then((user) => {
@@ -50,18 +58,23 @@ function AppContent() {
     };
   }, []);
 
-  const handleLogin = (user) => {
+  const handleLogin = (user, token) => {
+    localStorage.setItem("authToken", token);
     setCurrentUser(user);
     navigate(`/users/${user._id}`, { replace: true });
   };
 
   const handleLogout = async () => {
     try {
+      const token = localStorage.getItem("authToken");
       await fetch(`${apiBaseUrl}/admin/logout`, {
         method: "POST",
-        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
     } finally {
+      localStorage.removeItem("authToken");
       setCurrentUser(null);
       navigate("/login", { replace: true });
     }
@@ -75,9 +88,12 @@ function AppContent() {
     const formData = new FormData();
     formData.append("uploadedphoto", file);
 
+    const token = localStorage.getItem("authToken");
     const response = await fetch(`${apiBaseUrl}/photos/new`, {
       method: "POST",
-      credentials: "include",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: formData,
     });
 

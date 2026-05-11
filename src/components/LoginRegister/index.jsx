@@ -29,7 +29,6 @@ function LoginRegister({ onLogin }) {
 				headers: {
 					"Content-Type": "application/json",
 				},
-				credentials: "include",
 				body: JSON.stringify({
 					login_name: loginForm.login_name,
 					password: loginForm.password,
@@ -42,7 +41,8 @@ function LoginRegister({ onLogin }) {
 				throw new Error(data?.message || "Login failed");
 			}
 
-			onLogin(data);
+			// Pass both token and user data to onLogin
+			onLogin(data.user, data.token);
 		} catch (error) {
 			setLoginError(error.message || "Login failed");
 		}
@@ -64,7 +64,6 @@ function LoginRegister({ onLogin }) {
 				headers: {
 					"Content-Type": "application/json",
 				},
-				credentials: "include",
 				body: JSON.stringify({
 					login_name: registerForm.login_name,
 					password: registerForm.password,
