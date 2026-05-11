@@ -26,9 +26,11 @@ function formatDateTime(rawDateTime) {
 
 function resolveImage(fileName) {
   try {
-    return imageModules(`./${fileName}`);
+    const bundledImage = imageModules(`./${fileName}`);
+    return bundledImage;
   } catch (error) {
-    return fileName ? `/images/${fileName}` : "";
+    const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "";
+    return fileName ? `${apiBaseUrl}/images/${fileName}` : "";
   }
 }
 
